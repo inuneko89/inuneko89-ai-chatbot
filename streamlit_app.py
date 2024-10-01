@@ -20,6 +20,13 @@ if "chat_history" not in st.session_state:
 for role, message in st.session_state.chat_history:
     st.chat_message(role).markdown(message)
 
+# ฟังก์ชันในการรวมบทสนทนาก่อนหน้าเป็นข้อความเดียว
+def generate_conversation_history():
+    conversation = ""
+    for role, message in st.session_state.chat_history:
+        conversation += f"{role}: {message}\n"
+    return conversation
+
 # ตัวเลือกโมเดล
 model_option = st.sidebar.selectbox(
     "เลือกโมเดลที่ต้องการใช้:",
@@ -32,6 +39,9 @@ if user_input := st.chat_input("คุณกำลังมองหาร้า
     st.session_state.chat_history.append(("user", user_input))
     st.chat_message("user").markdown(user_input)
 
+    # สร้างประวัติการสนทนาเพื่อส่งไปพร้อมกับ prompt
+    conversation_history = generate_conversation_history()
+
     # ตรวจสอบข้อความอินพุตจากผู้ใช้
     if user_input.strip():
         try:
@@ -41,6 +51,7 @@ if user_input := st.chat_input("คุณกำลังมองหาร้า
             # เช็คว่าผู้ใช้ถามหาร้านอาหารหรือไม่ และเลือกโมเดลที่เหมาะสม
             if model_option == "หาร้านและรีวิว":
                 prompt = (
+                    f"ต่อจากบทสนทนานี้:\n{conversation_history}\n"
                     f"ช่วยแนะนำร้านอาหารที่ดีและคุ้มค่าในบริเวณนี้ รวมถึงรีวิว "
                     f"ที่อยู่ของร้าน แนะนำเมนูที่น่าสนใจ ราคาของเมนูเฉลี่ย และรีวิวจากลูกค้า "
                     f"ตามที่คุณกล่าวถึง: {user_input}. "
@@ -48,14 +59,19 @@ if user_input := st.chat_input("คุณกำลังมองหาร้า
                 )
             elif model_option == "แนะนำ จัดอันดับร้านน่ากิน":
                 prompt = (
+                    f"ต่อจากบทสนทนานี้:\n{conversation_history}\n"
                     f"ช่วยจัดอันดับร้านอาหารที่น่ากินในบริเวณนี้ พร้อมข้อมูลที่อยู่ "
                     f"แนะนำเมนู ราคาเฉลี่ยของเมนู และรีวิวจากลูกค้าของแต่ละร้าน "
                     f"ตามที่คุณกล่าวถึง: {user_input}. "
                     "โปรดจัดอันดับให้เรียบร้อย"
                 )
             else:  # คุยเรื่องอื่นๆ
-                prompt = f"ตอบโต้กลับข้อความนี้เหมือนเพื่อนทั่วไป: {user_input}"
+                prompt = (
+                    f"ต่อจากบทสนทนานี้:\n{conversation_history}\n"
+                    f"ตอบโต้กลับข้อความนี้เหมือนเพื่อนทั่วไป: {user_input}"
+                )
 
+            # ส่ง prompt ไปที่โมเดล AI
             response = model.generate_content(prompt)
             bot_response = response.text
 
